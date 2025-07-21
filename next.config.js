@@ -3,11 +3,6 @@ const nextConfig = {
   reactStrictMode: true,
   swcMinify: true,
   
-  // PWA Configuration for mobile app-like experience
-  experimental: {
-    appDir: false
-  },
-  
   // Security headers
   async headers() {
     return [
