@@ -1,8 +1,10 @@
 import { useState } from 'react'
 import Head from 'next/head'
+import { auth } from '../lib/supabase'
 
 export default function Home() {
   const [showRegistration, setShowRegistration] = useState(false)
+  const [showLogin, setShowLogin] = useState(false)
 
   return (
     <>
@@ -50,7 +52,7 @@ export default function Home() {
         {/* Main Content */}
         <main style={{ maxWidth: '56rem', margin: '0 auto', padding: '3rem 1rem' }}>
           
-          {!showRegistration ? (
+          {!showRegistration && !showLogin ? (
             // Welcome Screen
             <div style={{ textAlign: 'center' }}>
               <div style={{ 
@@ -140,7 +142,7 @@ export default function Home() {
                   </div>
                 </div>
 
-                <div style={{ marginBottom: '1rem' }}>
+                <div style={{ marginBottom: '1rem', display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
                   <button
                     onClick={() => setShowRegistration(true)}
                     style={{
@@ -156,7 +158,25 @@ export default function Home() {
                     onMouseOver={(e) => e.target.style.backgroundColor = '#166534'}
                     onMouseOut={(e) => e.target.style.backgroundColor = '#15803d'}
                   >
-                    Begin Anonymous Documentation
+                    Create New Account
+                  </button>
+                  
+                  <button
+                    onClick={() => setShowLogin(true)}
+                    style={{
+                      backgroundColor: 'white',
+                      color: '#15803d',
+                      padding: '0.75rem 2rem',
+                      borderRadius: '0.5rem',
+                      fontWeight: '600',
+                      border: '2px solid #15803d',
+                      cursor: 'pointer',
+                      fontSize: '1rem'
+                    }}
+                    onMouseOver={(e) => e.target.style.backgroundColor = '#f0fdf4'}
+                    onMouseOut={(e) => e.target.style.backgroundColor = 'white'}
+                  >
+                    Login to Account
                   </button>
                 </div>
                 
@@ -193,6 +213,9 @@ export default function Home() {
                 </div>
               </div>
             </div>
+          ) : showLogin ? (
+            // Login Form
+            <LoginForm onBack={() => setShowLogin(false)} />
           ) : (
             // Registration Form
             <RegistrationForm onBack={() => setShowRegistration(false)} />
@@ -212,38 +235,253 @@ export default function Home() {
   )
 }
 
-// Registration Component (Story 1.1: Anonymous Account Creation)
+// Login Component with Password Visibility
+function LoginForm({ onBack }) {
+  const [formData, setFormData] = useState({
+    pseudonym: '',
+    password: ''
+  })
+  
+  const [showPassword, setShowPassword] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [message, setMessage] = useState({ type: '', text: '' })
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    setIsSubmitting(true)
+    setMessage({ type: '', text: '' })
+
+    try {
+      const result = await auth.signIn(
+        formData.pseudonym,
+        formData.password
+      )
+
+      if (result.success) {
+        setMessage({ 
+          type: 'success', 
+          text: 'Login successful! Welcome back to your anonymous account.' 
+        })
+        
+        setTimeout(() => {
+          alert('Login successful! Dashboard coming soon...')
+          onBack()
+        }, 1500)
+        
+      } else {
+        setMessage({ type: 'error', text: result.error })
+      }
+    } catch (error) {
+      setMessage({ type: 'error', text: 'Login failed. Please try again.' })
+      console.error('Login error:', error)
+    }
+
+    setIsSubmitting(false)
+  }
+
+  return (
+    <div style={{ 
+      backgroundColor: 'white', 
+      borderRadius: '0.5rem', 
+      boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', 
+      padding: '2rem' 
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
+        <h2 style={{ fontSize: '1.5rem', fontWeight: '700', color: '#166534', margin: 0 }}>
+          Login to Anonymous Account
+        </h2>
+        <button
+          onClick={onBack}
+          style={{ 
+            color: '#16a34a', 
+            textDecoration: 'underline', 
+            background: 'none', 
+            border: 'none', 
+            cursor: 'pointer' 
+          }}
+        >
+          ← Back
+        </button>
+      </div>
+
+      {/* Success/Error Messages */}
+      {message.text && (
+        <div style={{ 
+          backgroundColor: message.type === 'success' ? '#f0fdf4' : '#fef2f2', 
+          borderLeft: `4px solid ${message.type === 'success' ? '#4ade80' : '#f87171'}`, 
+          padding: '1rem', 
+          marginBottom: '1.5rem' 
+        }}>
+          <p style={{ fontSize: '0.875rem', color: message.type === 'success' ? '#166534' : '#dc2626', margin: 0 }}>
+            {message.text}
+          </p>
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit}>
+        <div style={{ marginBottom: '1.5rem' }}>
+          <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#374151', marginBottom: '0.5rem' }}>
+            Your Pseudonym *
+          </label>
+          <input
+            type="text"
+            value={formData.pseudonym}
+            onChange={(e) => setFormData({...formData, pseudonym: e.target.value})}
+            style={{
+              width: '100%',
+              padding: '0.5rem 0.75rem',
+              border: '1px solid #d1d5db',
+              borderRadius: '0.375rem',
+              fontSize: '1rem',
+              boxSizing: 'border-box'
+            }}
+            placeholder="Enter the pseudonym you used when registering"
+            required
+            disabled={isSubmitting}
+          />
+        </div>
+
+        <div style={{ marginBottom: '1.5rem' }}>
+          <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#374151', marginBottom: '0.5rem' }}>
+            Password *
+          </label>
+          <div style={{ position: 'relative' }}>
+            <input
+              type={showPassword ? "text" : "password"}
+              value={formData.password}
+              onChange={(e) => setFormData({...formData, password: e.target.value})}
+              style={{
+                width: '100%',
+                padding: '0.5rem 2.5rem 0.5rem 0.75rem',
+                border: '1px solid #d1d5db',
+                borderRadius: '0.375rem',
+                fontSize: '1rem',
+                boxSizing: 'border-box'
+              }}
+              placeholder="Enter your password"
+              required
+              disabled={isSubmitting}
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              style={{
+                position: 'absolute',
+                right: '0.75rem',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                color: '#6b7280',
+                fontSize: '1rem'
+              }}
+            >
+              {showPassword ? '🙈' : '👁️'}
+            </button>
+          </div>
+        </div>
+
+        <button
+          type="submit"
+          disabled={isSubmitting}
+          style={{
+            width: '100%',
+            backgroundColor: isSubmitting ? '#9ca3af' : '#15803d',
+            color: 'white',
+            padding: '0.75rem',
+            borderRadius: '0.375rem',
+            fontWeight: '600',
+            border: 'none',
+            cursor: isSubmitting ? 'not-allowed' : 'pointer',
+            fontSize: '1rem'
+          }}
+        >
+          {isSubmitting ? 'Logging in...' : 'Login to Account'}
+        </button>
+
+        <div style={{ textAlign: 'center', marginTop: '1rem' }}>
+          <button type="button" style={{ 
+            color: '#6b7280', 
+            fontSize: '0.875rem',
+            textDecoration: 'underline', 
+            background: 'none', 
+            border: 'none', 
+            cursor: 'pointer' 
+          }}>
+            Forgot your password? (Coming soon)
+          </button>
+        </div>
+      </form>
+    </div>
+  )
+}
+
+// Enhanced Registration Component
 function RegistrationForm({ onBack }) {
   const [formData, setFormData] = useState({
     pseudonym: '',
     password: '',
     confirmPassword: '',
+    memoryHint: '',
     securityQuestions: {
-      question1: '',
-      answer1: '',
-      question2: '',
-      answer2: '',
-      question3: '',
-      answer3: ''
-    },
-    geographicPrecision: 'state'
+      question1: 'What was the name of your first pet?',
+      answer1: ''
+    }
   })
+  
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [message, setMessage] = useState({ type: '', text: '' })
 
-  const securityQuestionOptions = [
-    "What was the name of your first pet?",
-    "What city were you born in?",
-    "What was your favorite childhood book?",
-    "What was the model of your first car?",
-    "What is your mother's maiden name?",
-    "What elementary school did you attend?",
-    "What was your childhood nickname?",
-    "What street did you grow up on?"
-  ]
-
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
-    // TODO: Implement actual registration with Supabase
-    alert('Registration system ready for backend integration!')
+    setIsSubmitting(true)
+    setMessage({ type: '', text: '' })
+
+    // Validation
+    if (formData.password !== formData.confirmPassword) {
+      setMessage({ type: 'error', text: 'Passwords do not match' })
+      setIsSubmitting(false)
+      return
+    }
+
+    if (formData.password.length < 8) {
+      setMessage({ type: 'error', text: 'Password must be at least 8 characters' })
+      setIsSubmitting(false)
+      return
+    }
+
+    try {
+      const result = await auth.signUp(
+        formData.pseudonym,
+        formData.password,
+        {
+          ...formData.securityQuestions,
+          memoryHint: formData.memoryHint
+        }
+      )
+
+      if (result.success) {
+        setMessage({ 
+          type: 'success', 
+          text: 'Account created successfully! You can now start documenting experiences.' 
+        })
+        
+        setTimeout(() => {
+          onBack()
+        }, 2000)
+        
+      } else {
+        setMessage({ type: 'error', text: result.error })
+      }
+    } catch (error) {
+      setMessage({ type: 'error', text: 'Something went wrong. Please try again.' })
+      console.error('Registration error:', error)
+    }
+
+    setIsSubmitting(false)
   }
 
   return (
@@ -271,17 +509,19 @@ function RegistrationForm({ onBack }) {
         </button>
       </div>
 
-      <div style={{ 
-        backgroundColor: '#f0fdf4', 
-        borderLeft: '4px solid #4ade80', 
-        padding: '1rem', 
-        marginBottom: '1.5rem' 
-      }}>
-        <p style={{ fontSize: '0.875rem', color: '#166534', margin: 0 }}>
-          <strong>Privacy Guarantee:</strong> No personal information is required. 
-          Your pseudonym and password are the only identifiers needed.
-        </p>
-      </div>
+      {/* Success/Error Messages */}
+      {message.text && (
+        <div style={{ 
+          backgroundColor: message.type === 'success' ? '#f0fdf4' : '#fef2f2', 
+          borderLeft: `4px solid ${message.type === 'success' ? '#4ade80' : '#f87171'}`, 
+          padding: '1rem', 
+          marginBottom: '1.5rem' 
+        }}>
+          <p style={{ fontSize: '0.875rem', color: message.type === 'success' ? '#166534' : '#dc2626', margin: 0 }}>
+            {message.text}
+          </p>
+        </div>
+      )}
 
       <form onSubmit={handleSubmit}>
         <div style={{ marginBottom: '1.5rem' }}>
@@ -302,20 +542,101 @@ function RegistrationForm({ onBack }) {
             }}
             placeholder="Any name you'll remember (not your real name)"
             required
+            disabled={isSubmitting}
           />
-          <p style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: '0.25rem', margin: '0.25rem 0 0 0' }}>
-            This is how you'll log in. Choose something memorable but not identifying.
-          </p>
         </div>
 
         <div style={{ marginBottom: '1.5rem' }}>
           <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#374151', marginBottom: '0.5rem' }}>
             Create Password *
           </label>
+          <div style={{ position: 'relative' }}>
+            <input
+              type={showPassword ? "text" : "password"}
+              value={formData.password}
+              onChange={(e) => setFormData({...formData, password: e.target.value})}
+              style={{
+                width: '100%',
+                padding: '0.5rem 2.5rem 0.5rem 0.75rem',
+                border: '1px solid #d1d5db',
+                borderRadius: '0.375rem',
+                fontSize: '1rem',
+                boxSizing: 'border-box'
+              }}
+              placeholder="Minimum 8 characters"
+              minLength="8"
+              required
+              disabled={isSubmitting}
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              style={{
+                position: 'absolute',
+                right: '0.75rem',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                color: '#6b7280',
+                fontSize: '1rem'
+              }}
+            >
+              {showPassword ? '🙈' : '👁️'}
+            </button>
+          </div>
+        </div>
+
+        <div style={{ marginBottom: '1.5rem' }}>
+          <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#374151', marginBottom: '0.5rem' }}>
+            Confirm Password *
+          </label>
+          <div style={{ position: 'relative' }}>
+            <input
+              type={showConfirmPassword ? "text" : "password"}
+              value={formData.confirmPassword}
+              onChange={(e) => setFormData({...formData, confirmPassword: e.target.value})}
+              style={{
+                width: '100%',
+                padding: '0.5rem 2.5rem 0.5rem 0.75rem',
+                border: '1px solid #d1d5db',
+                borderRadius: '0.375rem',
+                fontSize: '1rem',
+                boxSizing: 'border-box'
+              }}
+              placeholder="Confirm your password"
+              required
+              disabled={isSubmitting}
+            />
+            <button
+              type="button"
+              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+              style={{
+                position: 'absolute',
+                right: '0.75rem',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                color: '#6b7280',
+                fontSize: '1rem'
+              }}
+            >
+              {showConfirmPassword ? '🙈' : '👁️'}
+            </button>
+          </div>
+        </div>
+
+        <div style={{ marginBottom: '1.5rem' }}>
+          <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#374151', marginBottom: '0.5rem' }}>
+            Password Memory Hint (Optional)
+          </label>
           <input
-            type="password"
-            value={formData.password}
-            onChange={(e) => setFormData({...formData, password: e.target.value})}
+            type="text"
+            value={formData.memoryHint}
+            onChange={(e) => setFormData({...formData, memoryHint: e.target.value})}
             style={{
               width: '100%',
               padding: '0.5rem 0.75rem',
@@ -324,29 +645,58 @@ function RegistrationForm({ onBack }) {
               fontSize: '1rem',
               boxSizing: 'border-box'
             }}
-            placeholder="Minimum 12 characters"
-            minLength="12"
+            placeholder="A hint to help you remember your password (not stored with password)"
+            disabled={isSubmitting}
+          />
+          <p style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: '0.25rem', margin: '0.25rem 0 0 0' }}>
+            A personal hint that helps you remember your password (e.g., "my cat's name + birth year")
+          </p>
+        </div>
+
+        <div style={{ marginBottom: '1.5rem' }}>
+          <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#374151', marginBottom: '0.5rem' }}>
+            Security Question Answer *
+          </label>
+          <p style={{ fontSize: '0.75rem', color: '#6b7280', marginBottom: '0.5rem', margin: '0 0 0.5rem 0' }}>
+            Question: What was the name of your first pet?
+          </p>
+          <input
+            type="text"
+            value={formData.securityQuestions.answer1}
+            onChange={(e) => setFormData({
+              ...formData, 
+              securityQuestions: {...formData.securityQuestions, answer1: e.target.value}
+            })}
+            style={{
+              width: '100%',
+              padding: '0.5rem 0.75rem',
+              border: '1px solid #d1d5db',
+              borderRadius: '0.375rem',
+              fontSize: '1rem',
+              boxSizing: 'border-box'
+            }}
+            placeholder="Your answer (required for password recovery)"
             required
+            disabled={isSubmitting}
           />
         </div>
 
         <button
           type="submit"
+          disabled={isSubmitting}
           style={{
             width: '100%',
-            backgroundColor: '#15803d',
+            backgroundColor: isSubmitting ? '#9ca3af' : '#15803d',
             color: 'white',
             padding: '0.75rem',
             borderRadius: '0.375rem',
             fontWeight: '600',
             border: 'none',
-            cursor: 'pointer',
+            cursor: isSubmitting ? 'not-allowed' : 'pointer',
             fontSize: '1rem'
           }}
-          onMouseOver={(e) => e.target.style.backgroundColor = '#166534'}
-          onMouseOut={(e) => e.target.style.backgroundColor = '#15803d'}
         >
-          Create Anonymous Account
+          {isSubmitting ? 'Creating Account...' : 'Create Anonymous Account'}
         </button>
       </form>
     </div>
