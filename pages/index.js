@@ -1,21 +1,112 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Head from 'next/head'
-import { auth } from '../lib/supabase'
+
+// Simulated authentication system for development
+const mockAuth = {
+  users: new Map(),
+  
+  signUp: async (pseudonym, password, securityData) => {
+    await new Promise(resolve => setTimeout(resolve, 1000))
+    
+    if (mockAuth.users.has(pseudonym.toLowerCase())) {
+      return { success: false, error: 'Pseudonym already taken. Please choose another.' }
+    }
+    
+    if (password.length < 8) {
+      return { success: false, error: 'Password must be at least 8 characters long.' }
+    }
+    
+    const userData = {
+      pseudonym: pseudonym.toLowerCase(),
+      passwordHash: btoa(password),
+      securityQuestions: securityData,
+      createdAt: new Date().toISOString(),
+      userId: 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
+    }
+    
+    mockAuth.users.set(pseudonym.toLowerCase(), userData)
+    
+    return { 
+      success: true, 
+      user: { 
+        id: userData.userId, 
+        pseudonym: userData.pseudonym 
+      } 
+    }
+  },
+  
+  signIn: async (pseudonym, password) => {
+    await new Promise(resolve => setTimeout(resolve, 800))
+    
+    const user = mockAuth.users.get(pseudonym.toLowerCase())
+    
+    if (!user) {
+      return { success: false, error: 'Account not found. Please check your pseudonym.' }
+    }
+    
+    if (btoa(password) !== user.passwordHash) {
+      return { success: false, error: 'Incorrect password. Please try again.' }
+    }
+    
+    return { 
+      success: true, 
+      user: { 
+        id: user.userId, 
+        pseudonym: user.pseudonym 
+      } 
+    }
+  }
+}
 
 export default function Home() {
   const [showRegistration, setShowRegistration] = useState(false)
   const [showLogin, setShowLogin] = useState(false)
+  const [currentUser, setCurrentUser] = useState(null)
+
+  // Safe localStorage access for SSR
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const savedUser = localStorage.getItem('lsw_user')
+      if (savedUser) {
+        try {
+          setCurrentUser(JSON.parse(savedUser))
+        } catch (e) {
+          localStorage.removeItem('lsw_user')
+        }
+      }
+    }
+  }, [])
+
+  const handleSuccessfulAuth = (user) => {
+    setCurrentUser(user)
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('lsw_user', JSON.stringify(user))
+    }
+    setShowRegistration(false)
+    setShowLogin(false)
+  }
+
+  const handleLogout = () => {
+    setCurrentUser(null)
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('lsw_user')
+    }
+  }
 
   return (
     <>
       <Head>
         <title>Let's Show The World - Anonymous SV Documentation</title>
+        <meta name="description" content="Anonymous platform for documenting experiences safely" />
       </Head>
 
       <div style={{ minHeight: '100vh', background: 'linear-gradient(to bottom, #f0fdf4, #dcfce7)' }}>
-        {/* Emergency Exit Button - Top Right */}
         <button
-          onClick={() => window.location.href = 'https://www.google.com'}
+          onClick={() => {
+            if (typeof window !== 'undefined') {
+              window.location.href = 'https://www.google.com'
+            }
+          }}
           style={{
             position: 'fixed',
             top: '1rem',
@@ -37,7 +128,6 @@ export default function Home() {
           Quick Exit
         </button>
 
-        {/* Header */}
         <header style={{ backgroundColor: '#166534', color: 'white', padding: '1.5rem 0' }}>
           <div style={{ maxWidth: '56rem', margin: '0 auto', padding: '0 1rem' }}>
             <h1 style={{ fontSize: '1.875rem', fontWeight: '700', textAlign: 'center', margin: 0 }}>
@@ -46,14 +136,35 @@ export default function Home() {
             <p style={{ textAlign: 'center', marginTop: '0.5rem', color: '#dcfce7', margin: '0.5rem 0 0 0' }}>
               Anonymous Documentation Platform for Change
             </p>
+            {currentUser && (
+              <div style={{ textAlign: 'center', marginTop: '1rem' }}>
+                <span style={{ fontSize: '0.875rem', color: '#dcfce7' }}>
+                  Welcome, {currentUser.pseudonym}
+                </span>
+                <button
+                  onClick={handleLogout}
+                  style={{
+                    marginLeft: '1rem',
+                    background: 'none',
+                    border: '1px solid #dcfce7',
+                    color: '#dcfce7',
+                    padding: '0.25rem 0.75rem',
+                    borderRadius: '0.25rem',
+                    fontSize: '0.75rem',
+                    cursor: 'pointer'
+                  }}
+                >
+                  Logout
+                </button>
+              </div>
+            )}
           </div>
         </header>
 
-        {/* Main Content */}
         <main style={{ maxWidth: '56rem', margin: '0 auto', padding: '3rem 1rem' }}>
-          
-          {!showRegistration && !showLogin ? (
-            // Welcome Screen
+          {currentUser ? (
+            <DashboardView user={currentUser} />
+          ) : !showRegistration && !showLogin ? (
             <div style={{ textAlign: 'center' }}>
               <div style={{ 
                 backgroundColor: 'white', 
@@ -193,7 +304,6 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* Crisis Resources Notice */}
               <div style={{ 
                 backgroundColor: '#fefce8', 
                 borderLeft: '4px solid #facc15', 
@@ -214,15 +324,12 @@ export default function Home() {
               </div>
             </div>
           ) : showLogin ? (
-            // Login Form
-            <LoginForm onBack={() => setShowLogin(false)} />
+            <LoginForm onBack={() => setShowLogin(false)} onSuccess={handleSuccessfulAuth} auth={mockAuth} />
           ) : (
-            // Registration Form
-            <RegistrationForm onBack={() => setShowRegistration(false)} />
+            <RegistrationForm onBack={() => setShowRegistration(false)} onSuccess={handleSuccessfulAuth} auth={mockAuth} />
           )}
         </main>
 
-        {/* Footer */}
         <footer style={{ backgroundColor: '#166534', color: 'white', padding: '1.5rem 0', marginTop: '3rem' }}>
           <div style={{ maxWidth: '56rem', margin: '0 auto', padding: '0 1rem', textAlign: 'center' }}>
             <p style={{ fontSize: '0.875rem', color: '#dcfce7', margin: 0 }}>
@@ -235,8 +342,85 @@ export default function Home() {
   )
 }
 
-// Login Component with Password Visibility
-function LoginForm({ onBack }) {
+function DashboardView({ user }) {
+  return (
+    <div style={{ 
+      backgroundColor: 'white', 
+      borderRadius: '0.5rem', 
+      boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', 
+      padding: '2rem',
+      textAlign: 'center'
+    }}>
+      <h2 style={{ 
+        fontSize: '1.5rem', 
+        fontWeight: '700', 
+        color: '#166534', 
+        marginBottom: '1.5rem',
+        margin: '0 0 1.5rem 0'
+      }}>
+        Welcome to Your Anonymous Dashboard
+      </h2>
+      
+      <div style={{ 
+        backgroundColor: '#f0fdf4', 
+        borderLeft: '4px solid #4ade80', 
+        padding: '1rem', 
+        marginBottom: '2rem' 
+      }}>
+        <p style={{ fontSize: '0.875rem', color: '#166534', margin: 0 }}>
+          <strong>Account Active:</strong> You are successfully logged in as <strong>{user.pseudonym}</strong>
+        </p>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
+        <button style={{
+          backgroundColor: '#15803d',
+          color: 'white',
+          padding: '1rem',
+          borderRadius: '0.5rem',
+          border: 'none',
+          cursor: 'pointer',
+          fontSize: '0.875rem',
+          fontWeight: '500'
+        }}>
+          📝 Document Experience
+        </button>
+        
+        <button style={{
+          backgroundColor: '#15803d',
+          color: 'white',
+          padding: '1rem',
+          borderRadius: '0.5rem',
+          border: 'none',
+          cursor: 'pointer',
+          fontSize: '0.875rem',
+          fontWeight: '500'
+        }}>
+          📊 View My Contributions
+        </button>
+        
+        <button style={{
+          backgroundColor: '#15803d',
+          color: 'white',
+          padding: '1rem',
+          borderRadius: '0.5rem',
+          border: 'none',
+          cursor: 'pointer',
+          fontSize: '0.875rem',
+          fontWeight: '500'
+        }}>
+          🔍 Explore Data Patterns
+        </button>
+      </div>
+
+      <p style={{ color: '#6b7280', fontSize: '0.875rem', fontStyle: 'italic' }}>
+        Dashboard features coming soon in development sprint 2...
+      </p>
+    </div>
+  )
+}
+
+function LoginForm({ onBack, onSuccess, auth }) {
   const [formData, setFormData] = useState({
     pseudonym: '',
     password: ''
@@ -253,7 +437,7 @@ function LoginForm({ onBack }) {
 
     try {
       const result = await auth.signIn(
-        formData.pseudonym,
+        formData.pseudonym.trim(),
         formData.password
       )
 
@@ -264,8 +448,7 @@ function LoginForm({ onBack }) {
         })
         
         setTimeout(() => {
-          alert('Login successful! Dashboard coming soon...')
-          onBack()
+          onSuccess(result.user)
         }, 1500)
         
       } else {
@@ -304,7 +487,6 @@ function LoginForm({ onBack }) {
         </button>
       </div>
 
-      {/* Success/Error Messages */}
       {message.text && (
         <div style={{ 
           backgroundColor: message.type === 'success' ? '#f0fdf4' : '#fef2f2', 
@@ -417,8 +599,7 @@ function LoginForm({ onBack }) {
   )
 }
 
-// Enhanced Registration Component
-function RegistrationForm({ onBack }) {
+function RegistrationForm({ onBack, onSuccess, auth }) {
   const [formData, setFormData] = useState({
     pseudonym: '',
     password: '',
@@ -440,7 +621,6 @@ function RegistrationForm({ onBack }) {
     setIsSubmitting(true)
     setMessage({ type: '', text: '' })
 
-    // Validation
     if (formData.password !== formData.confirmPassword) {
       setMessage({ type: 'error', text: 'Passwords do not match' })
       setIsSubmitting(false)
@@ -453,9 +633,15 @@ function RegistrationForm({ onBack }) {
       return
     }
 
+    if (!formData.pseudonym.trim()) {
+      setMessage({ type: 'error', text: 'Please choose a pseudonym' })
+      setIsSubmitting(false)
+      return
+    }
+
     try {
       const result = await auth.signUp(
-        formData.pseudonym,
+        formData.pseudonym.trim(),
         formData.password,
         {
           ...formData.securityQuestions,
@@ -470,7 +656,7 @@ function RegistrationForm({ onBack }) {
         })
         
         setTimeout(() => {
-          onBack()
+          onSuccess(result.user)
         }, 2000)
         
       } else {
@@ -509,7 +695,6 @@ function RegistrationForm({ onBack }) {
         </button>
       </div>
 
-      {/* Success/Error Messages */}
       {message.text && (
         <div style={{ 
           backgroundColor: message.type === 'success' ? '#f0fdf4' : '#fef2f2', 
