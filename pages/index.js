@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
 import Head from 'next/head'
 
-// Working mock authentication - PROVEN STABLE
 const mockAuth = {
   users: new Map(),
   
@@ -41,7 +40,6 @@ const mockAuth = {
   }
 }
 
-// Enhanced research-grade survey questions - Section 1: Demographics
 const surveyQuestions = [
   {
     id: 'enhanced_consent',
@@ -52,147 +50,51 @@ const surveyQuestions = [
   },
   {
     id: 'birth_year',
-    type: 'dropdown',
+    type: 'radio',
     question: 'What year were you born?',
-    options: Array.from({length: 80}, (_, i) => String(2024 - i)).concat(['Prefer not to answer']),
+    options: ['2005', '2004', '2003', '2002', '2001', '2000', '1999', '1998', '1997', '1996', '1995', '1990-1994', '1985-1989', '1980-1984', '1975-1979', '1970-1974', '1965-1969', '1960-1964', '1955-1959', '1950-1954', 'Before 1950', 'Prefer not to answer'],
     required: false
   },
   {
     id: 'gender_identity',
     type: 'radio',
     question: 'What is your current gender identity?',
-    options: [
-      'Woman',
-      'Man', 
-      'Non-binary',
-      'Transgender woman',
-      'Transgender man',
-      'Two-spirit',
-      'Gender fluid',
-      'Other (please specify)',
-      'Prefer not to answer'
-    ],
+    options: ['Woman', 'Man', 'Non-binary', 'Transgender woman', 'Transgender man', 'Two-spirit', 'Gender fluid', 'Other', 'Prefer not to answer'],
     required: false
   },
   {
     id: 'sexual_orientation',
     type: 'radio',
     question: 'Which of the following best represents how you think of yourself?',
-    options: [
-      'Straight/heterosexual',
-      'Gay/lesbian',
-      'Bisexual', 
-      'Pansexual',
-      'Asexual',
-      'Questioning/unsure',
-      'Something else (please specify)',
-      'I don\'t know',
-      'Prefer not to answer'
-    ],
+    options: ['Straight/heterosexual', 'Gay/lesbian', 'Bisexual', 'Pansexual', 'Asexual', 'Questioning/unsure', 'Something else', 'I don\'t know', 'Prefer not to answer'],
     required: false
   },
   {
     id: 'disability_status',
     type: 'radio',
     question: 'Do you have a disability, long-term health condition, or accessibility needs?',
-    options: [
-      'No',
-      'Yes - physical disability',
-      'Yes - intellectual/developmental disability', 
-      'Yes - mental health condition',
-      'Yes - chronic illness',
-      'Yes - multiple conditions',
-      'Prefer not to answer'
-    ],
+    options: ['No', 'Yes - physical disability', 'Yes - intellectual/developmental disability', 'Yes - mental health condition', 'Yes - chronic illness', 'Yes - multiple conditions', 'Prefer not to answer'],
     required: false
   },
   {
     id: 'relationship_status',
     type: 'radio',
     question: 'What is your current relationship status?',
-    options: [
-      'Single',
-      'In a relationship/dating',
-      'Married/civil union/domestic partnership',
-      'Polygamous marriage',
-      'Polyamorous relationships',
-      'Separated',
-      'Divorced',
-      'Widowed',
-      'I\'ve not had a relationship',
-      'It\'s complicated',
-      'Prefer not to answer'
-    ],
+    options: ['Single', 'In a relationship/dating', 'Married/civil union/domestic partnership', 'Separated', 'Divorced', 'Widowed', 'It\'s complicated', 'Prefer not to answer'],
     required: false
   },
   {
     id: 'education_level',
     type: 'radio', 
     question: 'What is the highest level of education you have completed?',
-    options: [
-      'Primary school/elementary school',
-      'Some secondary school/high school',
-      'Completed secondary school/high school',
-      'Trade certificate or diploma',
-      'Some university/college',
-      'Bachelor\'s degree',
-      'Postgraduate degree (Masters, PhD, etc.)',
-      'Other qualification',
-      'Prefer not to answer'
-    ],
+    options: ['Primary school/elementary school', 'Some secondary school/high school', 'Completed secondary school/high school', 'Trade certificate or diploma', 'Some university/college', 'Bachelor\'s degree', 'Postgraduate degree', 'Other qualification', 'Prefer not to answer'],
     required: false
   },
   {
     id: 'employment_status',
     type: 'radio',
     question: 'What best describes your current employment situation?',
-    options: [
-      'Employed full-time',
-      'Employed part-time', 
-      'Self-employed/freelance',
-      'Student',
-      'Unemployed, looking for work',
-      'Unemployed, not looking for work',
-      'Retired',
-      'Unable to work due to disability/illness',
-      'Homemaker/caregiver',
-      'Other',
-      'Prefer not to answer'
-    ],
-    required: false
-  },
-  {
-    id: 'personal_income',
-    type: 'radio',
-    question: 'What is your approximate annual personal income before taxes?',
-    options: [
-      'No income',
-      'Under $25,000',
-      '$25,000 - $49,999',
-      '$50,000 - $74,999', 
-      '$75,000 - $99,999',
-      '$100,000 - $149,999',
-      '$150,000 or more',
-      'I don\'t know',
-      'Prefer not to answer'
-    ],
-    required: false
-  },
-  {
-    id: 'primary_language',
-    type: 'radio',
-    question: 'What is your primary language spoken at home?',
-    options: [
-      'English',
-      'Spanish',
-      'French',
-      'Mandarin',
-      'Arabic', 
-      'Hindi',
-      'Portuguese',
-      'Other (please specify)',
-      'Prefer not to answer'
-    ],
+    options: ['Employed full-time', 'Employed part-time', 'Self-employed/freelance', 'Student', 'Unemployed, looking for work', 'Unemployed, not looking for work', 'Retired', 'Unable to work due to disability/illness', 'Homemaker/caregiver', 'Other', 'Prefer not to answer'],
     required: false
   }
 ]
@@ -204,8 +106,6 @@ export default function SexualViolenceDocumentationPlatform() {
   const [error, setError] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [showPasswordConfirm, setShowPasswordConfirm] = useState(false)
-  
-  // Survey state
   const [surveyActive, setSurveyActive] = useState(false)
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0)
   const [surveyResponses, setSurveyResponses] = useState({})
@@ -219,7 +119,6 @@ export default function SexualViolenceDocumentationPlatform() {
     securityAnswer: ''
   })
 
-  // Session management
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const savedUser = localStorage.getItem('currentUser')
@@ -247,7 +146,6 @@ export default function SexualViolenceDocumentationPlatform() {
     }
   }, [])
 
-  // Auto-save survey progress
   useEffect(() => {
     if (surveyActive && typeof window !== 'undefined') {
       localStorage.setItem('surveyResponses', JSON.stringify({
@@ -378,7 +276,6 @@ export default function SexualViolenceDocumentationPlatform() {
         backgroundColor: '#f9fafb',
         fontFamily: 'system-ui, -apple-system, sans-serif'
       }}>
-        {/* Emergency Exit Button */}
         <button
           onClick={emergencyExit}
           style={{
@@ -400,7 +297,6 @@ export default function SexualViolenceDocumentationPlatform() {
         </button>
 
         <div style={{ maxWidth: '800px', margin: '0 auto', padding: '20px' }}>
-          {/* Landing Page */}
           {authMode === 'landing' && (
             <div style={{ textAlign: 'center', padding: '40px 20px' }}>
               <h1 style={{ 
@@ -442,11 +338,6 @@ export default function SexualViolenceDocumentationPlatform() {
                   <li>✅ <strong>Your Control:</strong> Skip any question, exit anytime</li>
                   <li>✅ <strong>Important Research:</strong> Help create better support systems</li>
                 </ul>
-                
-                <p style={{ fontStyle: 'italic', color: '#6b7280' }}>
-                  This platform allows survivors to anonymously document their experiences, 
-                  contributing to research that improves support services and policy advocacy.
-                </p>
               </div>
 
               <div style={{ display: 'flex', gap: '20px', justifyContent: 'center', flexWrap: 'wrap' }}>
@@ -485,7 +376,6 @@ export default function SexualViolenceDocumentationPlatform() {
             </div>
           )}
 
-          {/* Registration Form */}
           {authMode === 'register' && (
             <div style={{ maxWidth: '500px', margin: '0 auto' }}>
               <h2 style={{ textAlign: 'center', marginBottom: '30px', color: '#166534' }}>
@@ -684,7 +574,6 @@ export default function SexualViolenceDocumentationPlatform() {
             </div>
           )}
 
-          {/* Login Form */}
           {authMode === 'login' && (
             <div style={{ maxWidth: '500px', margin: '0 auto' }}>
               <h2 style={{ textAlign: 'center', marginBottom: '30px', color: '#166534' }}>
@@ -800,7 +689,6 @@ export default function SexualViolenceDocumentationPlatform() {
             </div>
           )}
 
-          {/* Dashboard */}
           {authMode === 'dashboard' && currentUser && (
             <div style={{ textAlign: 'center', padding: '40px 20px' }}>
               <h1 style={{ fontSize: '32px', marginBottom: '20px', color: '#166534' }}>
@@ -815,7 +703,7 @@ export default function SexualViolenceDocumentationPlatform() {
                 textAlign: 'left',
                 boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
               }}>
-                <h2 style={{ color: '#166534', marginBottom: '20px' }}>Research-Grade Documentation Survey</h2>
+                <h2 style={{ color: '#166534', marginBottom: '20px' }}>Research Demographics Survey</h2>
                 
                 {surveyCompleted ? (
                   <div style={{
@@ -833,20 +721,73 @@ export default function SexualViolenceDocumentationPlatform() {
                 ) : (
                   <>
                     <p style={{ marginBottom: '20px' }}>
-                      This research-grade survey uses inclusive demographics and trauma-informed design. 
-                      All questions include "prefer not to answer" options and you can exit anytime.
+                      This research-grade survey includes enhanced informed consent and inclusive demographics questions. All questions are optional except the consent question.
                     </p>
                     
-                    <div style={{
-                      backgroundColor: '#f8fafc',
-                      border: '1px solid #e2e8f0',
-                      padding: '15px',
+                    {Object.keys(surveyResponses).length > 0 && (
+                      <div style={{
+                        backgroundColor: '#fef3c7',
+                        border: '1px solid #fbbf24',
+                        padding: '15px',
+                        borderRadius: '6px',
+                        marginBottom: '20px'
+                      }}>
+                        <p style={{ color: '#92400e', margin: '0' }}>
+                          <strong>Survey in Progress:</strong> You can continue where you left off.
+                        </p>
+                      </div>
+                    )}
+                  </>
+                )}
+                
+                <div style={{ display: 'flex', gap: '15px', justifyContent: 'center', flexWrap: 'wrap' }}>
+                  {!surveyCompleted && (
+                    <button
+                      onClick={startSurvey}
+                      style={{
+                        backgroundColor: '#166534',
+                        color: 'white',
+                        padding: '15px 30px',
+                        border: 'none',
+                        borderRadius: '6px',
+                        fontSize: '18px',
+                        cursor: 'pointer',
+                        fontWeight: 'bold'
+                      }}
+                    >
+                      {Object.keys(surveyResponses).length > 0 ? 'Continue Survey' : 'Begin Demographics Survey'}
+                    </button>
+                  )}
+                  
+                  <button
+                    onClick={handleLogout}
+                    style={{
+                      backgroundColor: 'white',
+                      color: '#6b7280',
+                      padding: '15px 30px',
+                      border: '2px solid #d1d5db',
                       borderRadius: '6px',
-                      marginBottom: '20px'
-                    }}>
-                      <h4 style={{ color: '#374151', marginBottom: '10px' }}>Demographics Section Features:</h4>
-                      <ul style={{ margin: '0', paddingLeft: '20px', lineHeight: '1.6', color: '#6b7280' }}>
-                        <li>Enhanced informed consent with trauma-informed language</li>
-                        <li>Inclusive gender identity and sexual orientation options</li>
-                        <li>Disability status and accessibility considerations</li>
-                        <li>Comprehensive socioeconomic an
+                      fontSize: '18px',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Sign Out
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {authMode === 'survey' && surveyActive && currentQuestion && (
+            <div style={{ maxWidth: '700px', margin: '0 auto', padding: '20px' }}>
+              <div style={{ marginBottom: '30px' }}>
+                <div style={{
+                  backgroundColor: '#f3f4f6',
+                  height: '8px',
+                  borderRadius: '4px',
+                  overflow: 'hidden'
+                }}>
+                  <div style={{
+                    backgroundColor: '#166534',
+                    height: '100%',
+                    width: `${progress
