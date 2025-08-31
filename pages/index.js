@@ -41,107 +41,162 @@ const mockAuth = {
   }
 }
 
-// Basic survey questions
+
+// Enhanced research-grade survey questions - Section 1: Demographics
 const surveyQuestions = [
   {
-    id: 'consent',
+    id: 'enhanced_consent',
     type: 'radio',
-    question: 'I understand this survey is completely anonymous and I can stop at any time.',
-    options: ['Yes, I understand', 'I need more information'],
+    question: 'I understand this survey is about unwanted sexual experiences and may be emotionally difficult. I understand I can stop, save, or skip questions at any time. I understand my responses are entirely anonymous and will be used for research, education and advocacy. I consent to participate in this research.',
+    options: ['Yes, I consent and understand', 'I need more information'],
     required: true
   },
   {
-    id: 'age_range',
+    id: 'birth_year',
+    type: 'dropdown',
+    question: 'What year were you born?',
+    options: Array.from({length: 80}, (_, i) => String(2024 - i)).concat(['Prefer not to answer']),
+    required: false
+  },
+  {
+    id: 'gender_identity',
     type: 'radio',
-    question: 'What is your age range?',
-    options: ['18-24', '25-34', '35-44', '45-54', '55-64', '65+', 'Prefer not to answer']
+    question: 'What is your current gender identity?',
+    options: [
+      'Woman',
+      'Man', 
+      'Non-binary',
+      'Transgender woman',
+      'Transgender man',
+      'Two-spirit',
+      'Gender fluid',
+      'Other (please specify)',
+      'Prefer not to answer'
+    ],
+    required: false
   },
   {
-    id: 'experience_timeframe',
+    id: 'sexual_orientation',
     type: 'radio',
-    question: 'When did your experience occur?',
+    question: 'Which of the following best represents how you think of yourself?',
     options: [
-      'Within the past month',
-      'Within the past 6 months', 
-      'Within the past year',
-      'More than a year ago',
+      'Straight/heterosexual',
+      'Gay/lesbian',
+      'Bisexual', 
+      'Pansexual',
+      'Asexual',
+      'Questioning/unsure',
+      'Something else (please specify)',
+      'I don\'t know',
       'Prefer not to answer'
-    ]
+    ],
+    required: false
   },
   {
-    id: 'support_helpful',
-    type: 'checkbox',
-    question: 'What types of support have been helpful? (Select all that apply)',
+    id: 'disability_status',
+    type: 'radio',
+    question: 'Do you have a disability, long-term health condition, or accessibility needs?',
     options: [
-      'Friends and family',
-      'Professional counseling',
-      'Support groups',
-      'Crisis hotlines',
-      'Online resources',
-      'Medical care',
-      'Legal assistance',
-      'None of the above',
+      'No',
+      'Yes - physical disability',
+      'Yes - intellectual/developmental disability', 
+      'Yes - mental health condition',
+      'Yes - chronic illness',
+      'Yes - multiple conditions',
       'Prefer not to answer'
-    ]
+    ],
+    required: false
   },
   {
-    id: 'additional_thoughts',
-    type: 'textarea',
-    question: 'Is there anything else you would like to share? (Optional)',
-    placeholder: 'Your thoughts here...'
+    id: 'relationship_status',
+    type: 'radio',
+    question: 'What is your current relationship status?',
+    options: [
+      'Single',
+      'In a relationship/dating',
+      'Married/civil union/domestic partnership',
+      'Polygamous marriage',
+      'Polyamorous relationships',
+      'Separated',
+      'Divorced',
+      'Widowed',
+      'I\'ve not had a relationship',
+      'It\'s complicated',
+      'Prefer not to answer'
+    ],
+    required: false
+  },
+  {
+    id: 'education_level',
+    type: 'radio', 
+    question: 'What is the highest level of education you have completed?',
+    options: [
+      'Primary school/elementary school',
+      'Some secondary school/high school',
+      'Completed secondary school/high school',
+      'Trade certificate or diploma',
+      'Some university/college',
+      'Bachelor\'s degree',
+      'Postgraduate degree (Masters, PhD, etc.)',
+      'Other qualification',
+      'Prefer not to answer'
+    ],
+    required: false
+  },
+  {
+    id: 'employment_status',
+    type: 'radio',
+    question: 'What best describes your current employment situation?',
+    options: [
+      'Employed full-time',
+      'Employed part-time', 
+      'Self-employed/freelance',
+      'Student',
+      'Unemployed, looking for work',
+      'Unemployed, not looking for work',
+      'Retired',
+      'Unable to work due to disability/illness',
+      'Homemaker/caregiver',
+      'Other',
+      'Prefer not to answer'
+    ],
+    required: false
+  },
+  {
+    id: 'personal_income',
+    type: 'radio',
+    question: 'What is your approximate annual personal income before taxes?',
+    options: [
+      'No income',
+      'Under $25,000',
+      '$25,000 - $49,999',
+      '$50,000 - $74,999', 
+      '$75,000 - $99,999',
+      '$100,000 - $149,999',
+      '$150,000 or more',
+      'I don\'t know',
+      'Prefer not to answer'
+    ],
+    required: false
+  },
+  {
+    id: 'primary_language',
+    type: 'radio',
+    question: 'What is your primary language spoken at home?',
+    options: [
+      'English',
+      'Spanish',
+      'French',
+      'Mandarin',
+      'Arabic', 
+      'Hindi',
+      'Portuguese',
+      'Other (please specify)',
+      'Prefer not to answer'
+    ],
+    required: false
   }
 ]
-
-export default function SexualViolenceDocumentationPlatform() {
-  const [currentUser, setCurrentUser] = useState(null)
-  const [authMode, setAuthMode] = useState('landing')
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
-  const [showPassword, setShowPassword] = useState(false)
-  const [showPasswordConfirm, setShowPasswordConfirm] = useState(false)
-  
-  // Survey state
-  const [surveyActive, setSurveyActive] = useState(false)
-  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0)
-  const [surveyResponses, setSurveyResponses] = useState({})
-  const [surveyCompleted, setSurveyCompleted] = useState(false)
-  
-  const [formData, setFormData] = useState({
-    pseudonym: '',
-    password: '',
-    passwordConfirm: '',
-    securityQuestion: 'What was the name of your first pet?',
-    securityAnswer: ''
-  })
-
-  // Session management
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const savedUser = localStorage.getItem('currentUser')
-      const savedSurvey = localStorage.getItem('surveyResponses')
-      
-      if (savedUser) {
-        try {
-          setCurrentUser(JSON.parse(savedUser))
-          setAuthMode('dashboard')
-        } catch (e) {
-          localStorage.removeItem('currentUser')
-        }
-      }
-      
-      if (savedSurvey) {
-        try {
-          const parsed = JSON.parse(savedSurvey)
-          setSurveyResponses(parsed.responses || {})
-          setCurrentQuestionIndex(parsed.currentIndex || 0)
-          if (parsed.completed) setSurveyCompleted(true)
-        } catch (e) {
-          localStorage.removeItem('surveyResponses')
-        }
-      }
-    }
-  }, [])
-
   // Auto-save survey progress
   useEffect(() => {
     if (surveyActive && typeof window !== 'undefined') {
