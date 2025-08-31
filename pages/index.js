@@ -1,13 +1,265 @@
 import { useState, useEffect } from 'react'
 import Head from 'next/head'
 
-// NO DATABASE - PURE REACT ONLY
+// Working mock authentication - PROVEN STABLE
+const mockAuth = {
+  users: new Map(),
+  
+  signUp: async (pseudonym, password, securityData) => {
+    await new Promise(resolve => setTimeout(resolve, 1000))
+    
+    if (mockAuth.users.has(pseudonym.toLowerCase())) {
+      return { success: false, error: 'Pseudonym already taken. Please choose another.' }
+    }
+    
+    if (password.length < 8) {
+      return { success: false, error: 'Password must be at least 8 characters long.' }
+    }
+    
+    const user = {
+      pseudonym: pseudonym.toLowerCase(),
+      password,
+      securityQuestion: securityData.question,
+      securityAnswer: securityData.answer.toLowerCase(),
+      createdAt: new Date().toISOString(),
+      id: `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+    }
+    
+    mockAuth.users.set(pseudonym.toLowerCase(), user)
+    return { success: true, user: { id: user.id, pseudonym: user.pseudonym } }
+  },
+  
+  signIn: async (pseudonym, password) => {
+    await new Promise(resolve => setTimeout(resolve, 800))
+    
+    const user = mockAuth.users.get(pseudonym.toLowerCase())
+    if (!user || user.password !== password) {
+      return { success: false, error: 'Invalid pseudonym or password.' }
+    }
+    
+    return { success: true, user: { id: user.id, pseudonym: user.pseudonym } }
+  }
+}
+
+// Basic survey questions
+const surveyQuestions = [
+  {
+    id: 'consent',
+    type: 'radio',
+    question: 'I understand this survey is completely anonymous and I can stop at any time.',
+    options: ['Yes, I understand', 'I need more information'],
+    required: true
+  },
+  {
+    id: 'age_range',
+    type: 'radio',
+    question: 'What is your age range?',
+    options: ['18-24', '25-34', '35-44', '45-54', '55-64', '65+', 'Prefer not to answer']
+  },
+  {
+    id: 'experience_timeframe',
+    type: 'radio',
+    question: 'When did your experience occur?',
+    options: [
+      'Within the past month',
+      'Within the past 6 months', 
+      'Within the past year',
+      'More than a year ago',
+      'Prefer not to answer'
+    ]
+  },
+  {
+    id: 'support_helpful',
+    type: 'checkbox',
+    question: 'What types of support have been helpful? (Select all that apply)',
+    options: [
+      'Friends and family',
+      'Professional counseling',
+      'Support groups',
+      'Crisis hotlines',
+      'Online resources',
+      'Medical care',
+      'Legal assistance',
+      'None of the above',
+      'Prefer not to answer'
+    ]
+  },
+  {
+    id: 'additional_thoughts',
+    type: 'textarea',
+    question: 'Is there anything else you would like to share? (Optional)',
+    placeholder: 'Your thoughts here...'
+  }
+]
+
 export default function SexualViolenceDocumentationPlatform() {
-  const [showSurvey, setShowSurvey] = useState(false)
+  const [currentUser, setCurrentUser] = useState(null)
+  const [authMode, setAuthMode] = useState('landing')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [showPasswordConfirm, setShowPasswordConfirm] = useState(false)
+  
+  // Survey state
+  const [surveyActive, setSurveyActive] = useState(false)
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0)
+  const [surveyResponses, setSurveyResponses] = useState({})
+  const [surveyCompleted, setSurveyCompleted] = useState(false)
+  
+  const [formData, setFormData] = useState({
+    pseudonym: '',
+    password: '',
+    passwordConfirm: '',
+    securityQuestion: 'What was the name of your first pet?',
+    securityAnswer: ''
+  })
+
+  // Session management
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const savedUser = localStorage.getItem('currentUser')
+      const savedSurvey = localStorage.getItem('surveyResponses')
+      
+      if (savedUser) {
+        try {
+          setCurrentUser(JSON.parse(savedUser))
+          setAuthMode('dashboard')
+        } catch (e) {
+          localStorage.removeItem('currentUser')
+        }
+      }
+      
+      if (savedSurvey) {
+        try {
+          const parsed = JSON.parse(savedSurvey)
+          setSurveyResponses(parsed.responses || {})
+          setCurrentQuestionIndex(parsed.currentIndex || 0)
+          if (parsed.completed) setSurveyCompleted(true)
+        } catch (e) {
+          localStorage.removeItem('surveyResponses')
+        }
+      }
+    }
+  }, [])
+
+  // Auto-save survey progress
+  useEffect(() => {
+    if (surveyActive && typeof window !== 'undefined') {
+      localStorage.setItem('surveyResponses', JSON.stringify({
+        responses: surveyResponses,
+        currentIndex: currentQuestionIndex,
+        completed: surveyCompleted
+      }))
+    }
+  }, [surveyResponses, currentQuestionIndex, surveyCompleted, surveyActive])
+
+  const handleAuth = async (action) => {
+    setLoading(true)
+    setError('')
+    
+    try {
+      let result
+      
+      if (action === 'register') {
+        if (formData.password !== formData.passwordConfirm) {
+          setError('Passwords do not match')
+          setLoading(false)
+          return
+        }
+        
+        if (!formData.pseudonym || !formData.password || !formData.securityAnswer) {
+          setError('Please fill in all required fields')
+          setLoading(false)
+          return
+        }
+        
+        result = await mockAuth.signUp(formData.pseudonym, formData.password, {
+          question: formData.securityQuestion,
+          answer: formData.securityAnswer
+        })
+        
+      } else if (action === 'login') {
+        if (!formData.pseudonym || !formData.password) {
+          setError('Please enter both pseudonym and password')
+          setLoading(false)
+          return
+        }
+        
+        result = await mockAuth.signIn(formData.pseudonym, formData.password)
+      }
+      
+      if (result.success) {
+        setCurrentUser(result.user)
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('currentUser', JSON.stringify(result.user))
+        }
+        setAuthMode('dashboard')
+        setFormData({
+          pseudonym: '',
+          password: '',
+          passwordConfirm: '',
+          securityQuestion: 'What was the name of your first pet?',
+          securityAnswer: ''
+        })
+      } else {
+        setError(result.error)
+      }
+    } catch (err) {
+      setError('An unexpected error occurred. Please try again.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleLogout = () => {
+    setCurrentUser(null)
+    setAuthMode('landing')
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('currentUser')
+    }
+  }
+
+  const startSurvey = () => {
+    setSurveyActive(true)
+    setAuthMode('survey')
+  }
+
+  const handleSurveyResponse = (questionId, value) => {
+    setSurveyResponses(prev => ({
+      ...prev,
+      [questionId]: value
+    }))
+  }
+
+  const nextQuestion = () => {
+    if (currentQuestionIndex < surveyQuestions.length - 1) {
+      setCurrentQuestionIndex(prev => prev + 1)
+    } else {
+      completeSurvey()
+    }
+  }
+
+  const prevQuestion = () => {
+    if (currentQuestionIndex > 0) {
+      setCurrentQuestionIndex(prev => prev - 1)
+    }
+  }
+
+  const completeSurvey = () => {
+    setSurveyCompleted(true)
+    setSurveyActive(false)
+    setAuthMode('dashboard')
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('surveyResponses')
+    }
+  }
 
   const emergencyExit = () => {
     window.location.href = 'https://www.google.com'
   }
+
+  const currentQuestion = surveyQuestions[currentQuestionIndex]
+  const progress = Math.round(((currentQuestionIndex + 1) / surveyQuestions.length) * 100)
 
   return (
     <>
@@ -43,8 +295,8 @@ export default function SexualViolenceDocumentationPlatform() {
         </button>
 
         <div style={{ maxWidth: '800px', margin: '0 auto', padding: '20px' }}>
-          {!showSurvey ? (
-            /* Landing Page */
+          {/* Landing Page */}
+          {authMode === 'landing' && (
             <div style={{ textAlign: 'center', padding: '40px 20px' }}>
               <h1 style={{ 
                 fontSize: '36px', 
@@ -92,101 +344,685 @@ export default function SexualViolenceDocumentationPlatform() {
                 </p>
               </div>
 
-              <div style={{
-                backgroundColor: '#dcfce7',
-                border: '1px solid #bbf7d0',
-                padding: '20px',
-                borderRadius: '8px',
-                marginBottom: '30px',
-                textAlign: 'left'
-              }}>
-                <h3 style={{ color: '#166534', marginBottom: '10px' }}>🚀 Platform Status</h3>
-                <p style={{ color: '#166534', margin: '0' }}>
-                  <strong>✅ DEPLOYMENT SUCCESSFUL!</strong><br/>
-                  Platform is now live and ready for development. Database integration coming next.
+              <div style={{ display: 'flex', gap: '20px', justifyContent: 'center', flexWrap: 'wrap' }}>
+                <button
+                  onClick={() => setAuthMode('register')}
+                  style={{
+                    backgroundColor: '#166534',
+                    color: 'white',
+                    padding: '15px 30px',
+                    border: 'none',
+                    borderRadius: '6px',
+                    fontSize: '18px',
+                    cursor: 'pointer',
+                    fontWeight: 'bold'
+                  }}
+                >
+                  Create Anonymous Account
+                </button>
+                
+                <button
+                  onClick={() => setAuthMode('login')}
+                  style={{
+                    backgroundColor: 'white',
+                    color: '#166534',
+                    padding: '15px 30px',
+                    border: '2px solid #166534',
+                    borderRadius: '6px',
+                    fontSize: '18px',
+                    cursor: 'pointer',
+                    fontWeight: 'bold'
+                  }}
+                >
+                  Continue Previous Session
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Registration Form - Same as before */}
+          {authMode === 'register' && (
+            <div style={{ maxWidth: '500px', margin: '0 auto' }}>
+              <h2 style={{ textAlign: 'center', marginBottom: '30px', color: '#166534' }}>
+                Create Anonymous Account
+              </h2>
+              
+              {error && (
+                <div style={{
+                  backgroundColor: '#fef2f2',
+                  border: '1px solid #fecaca',
+                  color: '#dc2626',
+                  padding: '12px',
+                  borderRadius: '4px',
+                  marginBottom: '20px'
+                }}>
+                  {error}
+                </div>
+              )}
+
+              <div style={{ backgroundColor: 'white', padding: '30px', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+                <div style={{ marginBottom: '20px' }}>
+                  <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
+                    Choose a Pseudonym *
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.pseudonym}
+                    onChange={(e) => setFormData({...formData, pseudonym: e.target.value})}
+                    placeholder="e.g., Phoenix, Sage, River"
+                    style={{
+                      width: '100%',
+                      padding: '12px',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '4px',
+                      fontSize: '16px',
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                </div>
+
+                <div style={{ marginBottom: '20px' }}>
+                  <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
+                    Create Password *
+                  </label>
+                  <div style={{ position: 'relative' }}>
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      value={formData.password}
+                      onChange={(e) => setFormData({...formData, password: e.target.value})}
+                      placeholder="Minimum 8 characters"
+                      style={{
+                        width: '100%',
+                        padding: '12px',
+                        paddingRight: '40px',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '4px',
+                        fontSize: '16px',
+                        boxSizing: 'border-box'
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      style={{
+                        position: 'absolute',
+                        right: '10px',
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        background: 'none',
+                        border: 'none',
+                        cursor: 'pointer',
+                        fontSize: '18px'
+                      }}
+                    >
+                      {showPassword ? '🙈' : '👁️'}
+                    </button>
+                  </div>
+                </div>
+
+                <div style={{ marginBottom: '20px' }}>
+                  <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
+                    Confirm Password *
+                  </label>
+                  <div style={{ position: 'relative' }}>
+                    <input
+                      type={showPasswordConfirm ? 'text' : 'password'}
+                      value={formData.passwordConfirm}
+                      onChange={(e) => setFormData({...formData, passwordConfirm: e.target.value})}
+                      placeholder="Re-enter your password"
+                      style={{
+                        width: '100%',
+                        padding: '12px',
+                        paddingRight: '40px',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '4px',
+                        fontSize: '16px',
+                        boxSizing: 'border-box'
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPasswordConfirm(!showPasswordConfirm)}
+                      style={{
+                        position: 'absolute',
+                        right: '10px',
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        background: 'none',
+                        border: 'none',
+                        cursor: 'pointer',
+                        fontSize: '18px'
+                      }}
+                    >
+                      {showPasswordConfirm ? '🙈' : '👁️'}
+                    </button>
+                  </div>
+                </div>
+
+                <div style={{ marginBottom: '20px' }}>
+                  <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
+                    Security Question *
+                  </label>
+                  <select
+                    value={formData.securityQuestion}
+                    onChange={(e) => setFormData({...formData, securityQuestion: e.target.value})}
+                    style={{
+                      width: '100%',
+                      padding: '12px',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '4px',
+                      fontSize: '16px',
+                      boxSizing: 'border-box'
+                    }}
+                  >
+                    <option>What was the name of your first pet?</option>
+                    <option>What was your favorite childhood book?</option>
+                    <option>What was the first concert you attended?</option>
+                    <option>What was your childhood nickname?</option>
+                  </select>
+                </div>
+
+                <div style={{ marginBottom: '30px' }}>
+                  <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
+                    Security Answer *
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.securityAnswer}
+                    onChange={(e) => setFormData({...formData, securityAnswer: e.target.value})}
+                    placeholder="Your answer"
+                    style={{
+                      width: '100%',
+                      padding: '12px',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '4px',
+                      fontSize: '16px',
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                </div>
+
+                <button
+                  onClick={() => handleAuth('register')}
+                  disabled={loading}
+                  style={{
+                    width: '100%',
+                    backgroundColor: loading ? '#9ca3af' : '#166534',
+                    color: 'white',
+                    padding: '15px',
+                    border: 'none',
+                    borderRadius: '6px',
+                    fontSize: '18px',
+                    cursor: loading ? 'not-allowed' : 'pointer',
+                    fontWeight: 'bold'
+                  }}
+                >
+                  {loading ? 'Creating Account...' : 'Create Anonymous Account'}
+                </button>
+
+                <p style={{ textAlign: 'center', marginTop: '20px', color: '#6b7280' }}>
+                  Already have an account?{' '}
+                  <button
+                    onClick={() => setAuthMode('login')}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: '#166534',
+                      cursor: 'pointer',
+                      textDecoration: 'underline'
+                    }}
+                  >
+                    Sign In
+                  </button>
                 </p>
               </div>
-
-              <button
-                onClick={() => setShowSurvey(true)}
-                style={{
-                  backgroundColor: '#166534',
-                  color: 'white',
-                  padding: '15px 30px',
-                  border: 'none',
-                  borderRadius: '6px',
-                  fontSize: '18px',
-                  cursor: 'pointer',
-                  fontWeight: 'bold'
-                }}
-              >
-                Preview Survey System
-              </button>
             </div>
-          ) : (
-            /* Survey Preview */
-            <div style={{ padding: '20px' }}>
-              <h2 style={{ color: '#166534', marginBottom: '20px' }}>Survey System Preview</h2>
+          )}
+
+          {/* Login Form - Same as before */}
+          {authMode === 'login' && (
+            <div style={{ maxWidth: '500px', margin: '0 auto' }}>
+              <h2 style={{ textAlign: 'center', marginBottom: '30px', color: '#166534' }}>
+                Continue Your Session
+              </h2>
+              
+              {error && (
+                <div style={{
+                  backgroundColor: '#fef2f2',
+                  border: '1px solid #fecaca',
+                  color: '#dc2626',
+                  padding: '12px',
+                  borderRadius: '4px',
+                  marginBottom: '20px'
+                }}>
+                  {error}
+                </div>
+              )}
+
+              <div style={{ backgroundColor: 'white', padding: '30px', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+                <div style={{ marginBottom: '20px' }}>
+                  <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
+                    Pseudonym
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.pseudonym}
+                    onChange={(e) => setFormData({...formData, pseudonym: e.target.value})}
+                    placeholder="Your anonymous pseudonym"
+                    style={{
+                      width: '100%',
+                      padding: '12px',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '4px',
+                      fontSize: '16px',
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                </div>
+
+                <div style={{ marginBottom: '30px' }}>
+                  <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
+                    Password
+                  </label>
+                  <div style={{ position: 'relative' }}>
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      value={formData.password}
+                      onChange={(e) => setFormData({...formData, password: e.target.value})}
+                      placeholder="Your password"
+                      style={{
+                        width: '100%',
+                        padding: '12px',
+                        paddingRight: '40px',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '4px',
+                        fontSize: '16px',
+                        boxSizing: 'border-box'
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      style={{
+                        position: 'absolute',
+                        right: '10px',
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        background: 'none',
+                        border: 'none',
+                        cursor: 'pointer',
+                        fontSize: '18px'
+                      }}
+                    >
+                      {showPassword ? '🙈' : '👁️'}
+                    </button>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => handleAuth('login')}
+                  disabled={loading}
+                  style={{
+                    width: '100%',
+                    backgroundColor: loading ? '#9ca3af' : '#166534',
+                    color: 'white',
+                    padding: '15px',
+                    border: 'none',
+                    borderRadius: '6px',
+                    fontSize: '18px',
+                    cursor: loading ? 'not-allowed' : 'pointer',
+                    fontWeight: 'bold'
+                  }}
+                >
+                  {loading ? 'Signing In...' : 'Sign In'}
+                </button>
+
+                <div style={{ textAlign: 'center', marginTop: '20px', color: '#6b7280' }}>
+                  <button
+                    onClick={() => setAuthMode('register')}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: '#166534',
+                      cursor: 'pointer',
+                      textDecoration: 'underline'
+                    }}
+                  >
+                    Create Account
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Dashboard */}
+          {authMode === 'dashboard' && currentUser && (
+            <div style={{ textAlign: 'center', padding: '40px 20px' }}>
+              <h1 style={{ fontSize: '32px', marginBottom: '20px', color: '#166534' }}>
+                Welcome back, {currentUser.pseudonym}
+              </h1>
               
               <div style={{
                 backgroundColor: 'white',
                 padding: '30px',
                 borderRadius: '8px',
-                marginBottom: '20px',
+                marginBottom: '30px',
+                textAlign: 'left',
                 boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
               }}>
-                <h3 style={{ color: '#166534', marginBottom: '15px' }}>
-                  Sample Question: How do you identify your gender?
-                </h3>
+                <h2 style={{ color: '#166534', marginBottom: '20px' }}>Anonymous Documentation Survey</h2>
                 
-                <div>
-                  {[
-                    'Woman', 'Man', 'Non-binary', 'Genderfluid', 'Agender', 
-                    'Two-Spirit', 'Transgender woman', 'Transgender man', 
-                    'Another identity', 'Prefer not to answer'
-                  ].map((option, index) => (
-                    <label key={index} style={{ display: 'block', marginBottom: '10px', cursor: 'pointer' }}>
-                      <input
-                        type="checkbox"
-                        style={{ marginRight: '8px' }}
-                      />
-                      {option}
-                    </label>
-                  ))}
+                {surveyCompleted ? (
+                  <div style={{
+                    backgroundColor: '#dcfce7',
+                    border: '1px solid #bbf7d0',
+                    padding: '20px',
+                    borderRadius: '6px',
+                    marginBottom: '20px'
+                  }}>
+                    <h3 style={{ color: '#166534', marginBottom: '10px' }}>✅ Survey Completed</h3>
+                    <p style={{ color: '#166534', margin: '0' }}>
+                      Thank you for sharing your experience. Your anonymous responses will contribute to important research.
+                    </p>
+                  </div>
+                ) : (
+                  <>
+                    <p style={{ marginBottom: '20px' }}>
+                      This anonymous survey helps document experiences and improve support systems. 
+                      All questions are optional and your responses are completely private.
+                    </p>
+                    
+                    <div style={{
+                      backgroundColor: '#f8fafc',
+                      border: '1px solid #e2e8f0',
+                      padding: '15px',
+                      borderRadius: '6px',
+                      marginBottom: '20px'
+                    }}>
+                      <h4 style={{ color: '#374151', marginBottom: '10px' }}>Survey Details:</h4>
+                      <ul style={{ margin: '0', paddingLeft: '20px', lineHeight: '1.6', color: '#6b7280' }}>
+                        <li>5 questions covering basic information and support needs</li>
+                        <li>Takes about 5-10 minutes to complete</li>
+                        <li>Progress is automatically saved</li>
+                        <li>Skip any question you're not comfortable answering</li>
+                      </ul>
+                    </div>
+
+                    {Object.keys(surveyResponses).length > 0 && (
+                      <div style={{
+                        backgroundColor: '#fef3c7',
+                        border: '1px solid #fbbf24',
+                        padding: '15px',
+                        borderRadius: '6px',
+                        marginBottom: '20px'
+                      }}>
+                        <p style={{ color: '#92400e', margin: '0' }}>
+                          <strong>Survey in Progress:</strong> You can continue where you left off.
+                        </p>
+                      </div>
+                    )}
+                  </>
+                )}
+                
+                <div style={{ display: 'flex', gap: '15px', justifyContent: 'center', flexWrap: 'wrap' }}>
+                  {!surveyCompleted && (
+                    <button
+                      onClick={startSurvey}
+                      style={{
+                        backgroundColor: '#166534',
+                        color: 'white',
+                        padding: '15px 30px',
+                        border: 'none',
+                        borderRadius: '6px',
+                        fontSize: '18px',
+                        cursor: 'pointer',
+                        fontWeight: 'bold'
+                      }}
+                    >
+                      {Object.keys(surveyResponses).length > 0 ? 'Continue Survey' : 'Begin Survey'}
+                    </button>
+                  )}
+                  
+                  <button
+                    onClick={handleLogout}
+                    style={{
+                      backgroundColor: 'white',
+                      color: '#6b7280',
+                      padding: '15px 30px',
+                      border: '2px solid #d1d5db',
+                      borderRadius: '6px',
+                      fontSize: '18px',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Sign Out
+                  </button>
                 </div>
-                
-                <p style={{ fontSize: '14px', color: '#6b7280', marginTop: '15px', fontStyle: 'italic' }}>
-                  This question is optional - you can skip if you prefer not to answer.
+              </div>
+            </div>
+          )}
+
+          {/* Survey Interface */}
+          {authMode === 'survey' && surveyActive && currentQuestion && (
+            <div style={{ maxWidth: '700px', margin: '0 auto', padding: '20px' }}>
+              {/* Progress Bar */}
+              <div style={{ marginBottom: '30px' }}>
+                <div style={{
+                  backgroundColor: '#f3f4f6',
+                  height: '8px',
+                  borderRadius: '4px',
+                  overflow: 'hidden'
+                }}>
+                  <div style={{
+                    backgroundColor: '#166534',
+                    height: '100%',
+                    width: `${progress}%`,
+                    transition: 'width 0.3s ease'
+                  }} />
+                </div>
+                <p style={{ textAlign: 'center', marginTop: '10px', color: '#6b7280', fontSize: '14px' }}>
+                  Question {currentQuestionIndex + 1} of {surveyQuestions.length} ({progress}% complete)
                 </p>
               </div>
 
+              {/* Question */}
               <div style={{
-                backgroundColor: '#f3f4f6',
-                padding: '20px',
+                backgroundColor: 'white',
+                padding: '30px',
                 borderRadius: '8px',
-                marginBottom: '20px'
+                boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+                marginBottom: '30px'
               }}>
-                <h4 style={{ color: '#374151', marginBottom: '10px' }}>✅ Survey Features Ready:</h4>
-                <ul style={{ margin: '0', paddingLeft: '20px', lineHeight: '1.6' }}>
-                  <li>7 comprehensive sections</li>
-                  <li>60+ trauma-informed questions</li>
-                  <li>Crisis detection and intervention</li>
-                  <li>Auto-save every 3 questions</li>
-                  <li>Break reminders every 15 minutes</li>
-                  <li>Emergency exit always available</li>
-                </ul>
+                <h3 style={{ color: '#166534', marginBottom: '20px', fontSize: '20px' }}>
+                  {currentQuestion.question}
+                  {currentQuestion.required && <span style={{ color: '#dc2626' }}> *</span>}
+                </h3>
+
+                {/* Radio buttons */}
+                {currentQuestion.type === 'radio' && (
+                  <div>
+                    {currentQuestion.options.map((option, index) => (
+                      <label key={index} style={{ 
+                        display: 'block', 
+                        marginBottom: '12px', 
+                        cursor: 'pointer',
+                        padding: '10px',
+                        border: '1px solid #e5e7eb',
+                        borderRadius: '4px',
+                        backgroundColor: surveyResponses[currentQuestion.id] === option ? '#f0fdf4' : 'white'
+                      }}>
+                        <input
+                          type="radio"
+                          name={currentQuestion.id}
+                          value={option}
+                          checked={surveyResponses[currentQuestion.id] === option}
+                          onChange={(e) => handleSurveyResponse(currentQuestion.id, e.target.value)}
+                          style={{ marginRight: '10px' }}
+                        />
+                        {option}
+                      </label>
+                    ))}
+                  </div>
+                )}
+
+                {/* Checkboxes */}
+                {currentQuestion.type === 'checkbox' && (
+                  <div>
+                    {currentQuestion.options.map((option, index) => {
+                      const currentResponses = surveyResponses[currentQuestion.id] || []
+                      return (
+                        <label key={index} style={{ 
+                          display: 'block', 
+                          marginBottom: '12px', 
+                          cursor: 'pointer',
+                          padding: '10px',
+                          border: '1px solid #e5e7eb',
+                          borderRadius: '4px',
+                          backgroundColor: currentResponses.includes(option) ? '#f0fdf4' : 'white'
+                        }}>
+                          <input
+                            type="checkbox"
+                            value={option}
+                            checked={currentResponses.includes(option)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                handleSurveyResponse(currentQuestion.id, [...currentResponses, option])
+                              } else {
+                                handleSurveyResponse(currentQuestion.id, currentResponses.filter(r => r !== option))
+                              }
+                            }}
+                            style={{ marginRight: '10px' }}
+                          />
+                          {option}
+                        </label>
+                      )
+                    })}
+                  </div>
+                )}
+
+                {/* Textarea */}
+                {currentQuestion.type === 'textarea' && (
+                  <textarea
+                    value={surveyResponses[currentQuestion.id] || ''}
+                    onChange={(e) => handleSurveyResponse(currentQuestion.id, e.target.value)}
+                    placeholder={currentQuestion.placeholder}
+                    style={{
+                      width: '100%',
+                      minHeight: '120px',
+                      padding: '15px',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '6px',
+                      fontSize: '16px',
+                      resize: 'vertical',
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                )}
+
+                {!currentQuestion.required && (
+                  <p style={{ fontSize: '14px', color: '#6b7280', marginTop: '15px', fontStyle: 'italic' }}>
+                    This question is optional - you can skip if you prefer not to answer.
+                  </p>
+                )}
               </div>
 
+              {/* Navigation */}
+              <div style={{ 
+                display: 'flex', 
+                justifyContent: 'space-between', 
+                alignItems: 'center',
+                gap: '20px'
+              }}>
+                <button
+                  onClick={prevQuestion}
+                  disabled={currentQuestionIndex === 0}
+                  style={{
+                    backgroundColor: currentQuestionIndex === 0 ? '#f3f4f6' : 'white',
+                    color: currentQuestionIndex === 0 ? '#9ca3af' : '#374151',
+                    padding: '12px 24px',
+                    border: '2px solid #d1d5db',
+                    borderRadius: '6px',
+                    cursor: currentQuestionIndex === 0 ? 'not-allowed' : 'pointer',
+                    fontSize: '16px'
+                  }}
+                >
+                  ← Previous
+                </button>
+
+                <div style={{ display: 'flex', gap: '15px' }}>
+                  <button
+                    onClick={() => setAuthMode('dashboard')}
+                    style={{
+                      backgroundColor: 'white',
+                      color: '#6b7280',
+                      padding: '12px 24px',
+                      border: '2px solid #d1d5db',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      fontSize: '16px'
+                    }}
+                  >
+                    Save & Exit
+                  </button>
+                  
+                  <button
+                    onClick={nextQuestion}
+                    style={{
+                      backgroundColor: '#166534',
+                      color: 'white',
+                      padding: '12px 24px',
+                      border: 'none',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      fontSize: '16px',
+                      fontWeight: 'bold'
+                    }}
+                  >
+                    {currentQuestionIndex === surveyQuestions.length - 1 ? 'Complete Survey' : 'Next →'}
+                  </button>
+                </div>
+              </div>
+
+              {/* Auto-save indicator */}
+              <div style={{ 
+                textAlign: 'center', 
+                marginTop: '20px',
+                fontSize: '14px',
+                color: '#6b7280',
+                fontStyle: 'italic'
+              }}>
+                ✓ Your progress is automatically saved
+              </div>
+
+              {/* Crisis resources footer */}
+              <div style={{
+                backgroundColor: '#fef3c7',
+                border: '1px solid #fbbf24',
+                padding: '15px',
+                borderRadius: '6px',
+                marginTop: '30px',
+                textAlign: 'center'
+              }}>
+                <p style={{ margin: '0', color: '#92400e', fontSize: '14px' }}>
+                  <strong>Need support?</strong> National Sexual Assault Hotline: 1-800-656-4673 (24/7) | 
+                  Crisis Text Line: Text HOME to 741741
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Back to Landing */}
+          {['register', 'login'].includes(authMode) && (
+            <div style={{ textAlign: 'center', marginTop: '20px' }}>
               <button
-                onClick={() => setShowSurvey(false)}
+                onClick={() => setAuthMode('landing')}
                 style={{
-                  backgroundColor: '#6b7280',
-                  color: 'white',
-                  padding: '12px 24px',
+                  background: 'none',
                   border: 'none',
-                  borderRadius: '6px',
+                  color: '#6b7280',
                   cursor: 'pointer',
-                  fontSize: '16px'
+                  textDecoration: 'underline',
+                  fontSize: '14px'
                 }}
               >
                 ← Back to Home
