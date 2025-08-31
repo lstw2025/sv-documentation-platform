@@ -41,7 +41,6 @@ const mockAuth = {
   }
 }
 
-
 // Enhanced research-grade survey questions - Section 1: Demographics
 const surveyQuestions = [
   {
@@ -197,6 +196,57 @@ const surveyQuestions = [
     required: false
   }
 ]
+
+export default function SexualViolenceDocumentationPlatform() {
+  const [currentUser, setCurrentUser] = useState(null)
+  const [authMode, setAuthMode] = useState('landing')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [showPasswordConfirm, setShowPasswordConfirm] = useState(false)
+  
+  // Survey state
+  const [surveyActive, setSurveyActive] = useState(false)
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0)
+  const [surveyResponses, setSurveyResponses] = useState({})
+  const [surveyCompleted, setSurveyCompleted] = useState(false)
+  
+  const [formData, setFormData] = useState({
+    pseudonym: '',
+    password: '',
+    passwordConfirm: '',
+    securityQuestion: 'What was the name of your first pet?',
+    securityAnswer: ''
+  })
+
+  // Session management
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const savedUser = localStorage.getItem('currentUser')
+      const savedSurvey = localStorage.getItem('surveyResponses')
+      
+      if (savedUser) {
+        try {
+          setCurrentUser(JSON.parse(savedUser))
+          setAuthMode('dashboard')
+        } catch (e) {
+          localStorage.removeItem('currentUser')
+        }
+      }
+      
+      if (savedSurvey) {
+        try {
+          const parsed = JSON.parse(savedSurvey)
+          setSurveyResponses(parsed.responses || {})
+          setCurrentQuestionIndex(parsed.currentIndex || 0)
+          if (parsed.completed) setSurveyCompleted(true)
+        } catch (e) {
+          localStorage.removeItem('surveyResponses')
+        }
+      }
+    }
+  }, [])
+
   // Auto-save survey progress
   useEffect(() => {
     if (surveyActive && typeof window !== 'undefined') {
@@ -435,7 +485,7 @@ const surveyQuestions = [
             </div>
           )}
 
-          {/* Registration Form - Same as before */}
+          {/* Registration Form */}
           {authMode === 'register' && (
             <div style={{ maxWidth: '500px', margin: '0 auto' }}>
               <h2 style={{ textAlign: 'center', marginBottom: '30px', color: '#166534' }}>
@@ -634,7 +684,7 @@ const surveyQuestions = [
             </div>
           )}
 
-          {/* Login Form - Same as before */}
+          {/* Login Form */}
           {authMode === 'login' && (
             <div style={{ maxWidth: '500px', margin: '0 auto' }}>
               <h2 style={{ textAlign: 'center', marginBottom: '30px', color: '#166534' }}>
@@ -765,7 +815,7 @@ const surveyQuestions = [
                 textAlign: 'left',
                 boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
               }}>
-                <h2 style={{ color: '#166534', marginBottom: '20px' }}>Anonymous Documentation Survey</h2>
+                <h2 style={{ color: '#166534', marginBottom: '20px' }}>Research-Grade Documentation Survey</h2>
                 
                 {surveyCompleted ? (
                   <div style={{
@@ -775,16 +825,16 @@ const surveyQuestions = [
                     borderRadius: '6px',
                     marginBottom: '20px'
                   }}>
-                    <h3 style={{ color: '#166534', marginBottom: '10px' }}>✅ Survey Completed</h3>
+                    <h3 style={{ color: '#166534', marginBottom: '10px' }}>✅ Demographics Section Completed</h3>
                     <p style={{ color: '#166534', margin: '0' }}>
-                      Thank you for sharing your experience. Your anonymous responses will contribute to important research.
+                      Thank you for completing the demographics section. Your responses contribute to research-grade data collection.
                     </p>
                   </div>
                 ) : (
                   <>
                     <p style={{ marginBottom: '20px' }}>
-                      This anonymous survey helps document experiences and improve support systems. 
-                      All questions are optional and your responses are completely private.
+                      This research-grade survey uses inclusive demographics and trauma-informed design. 
+                      All questions include "prefer not to answer" options and you can exit anytime.
                     </p>
                     
                     <div style={{
@@ -794,298 +844,9 @@ const surveyQuestions = [
                       borderRadius: '6px',
                       marginBottom: '20px'
                     }}>
-                      <h4 style={{ color: '#374151', marginBottom: '10px' }}>Survey Details:</h4>
+                      <h4 style={{ color: '#374151', marginBottom: '10px' }}>Demographics Section Features:</h4>
                       <ul style={{ margin: '0', paddingLeft: '20px', lineHeight: '1.6', color: '#6b7280' }}>
-                        <li>5 questions covering basic information and support needs</li>
-                        <li>Takes about 5-10 minutes to complete</li>
-                        <li>Progress is automatically saved</li>
-                        <li>Skip any question you're not comfortable answering</li>
-                      </ul>
-                    </div>
-
-                    {Object.keys(surveyResponses).length > 0 && (
-                      <div style={{
-                        backgroundColor: '#fef3c7',
-                        border: '1px solid #fbbf24',
-                        padding: '15px',
-                        borderRadius: '6px',
-                        marginBottom: '20px'
-                      }}>
-                        <p style={{ color: '#92400e', margin: '0' }}>
-                          <strong>Survey in Progress:</strong> You can continue where you left off.
-                        </p>
-                      </div>
-                    )}
-                  </>
-                )}
-                
-                <div style={{ display: 'flex', gap: '15px', justifyContent: 'center', flexWrap: 'wrap' }}>
-                  {!surveyCompleted && (
-                    <button
-                      onClick={startSurvey}
-                      style={{
-                        backgroundColor: '#166534',
-                        color: 'white',
-                        padding: '15px 30px',
-                        border: 'none',
-                        borderRadius: '6px',
-                        fontSize: '18px',
-                        cursor: 'pointer',
-                        fontWeight: 'bold'
-                      }}
-                    >
-                      {Object.keys(surveyResponses).length > 0 ? 'Continue Survey' : 'Begin Survey'}
-                    </button>
-                  )}
-                  
-                  <button
-                    onClick={handleLogout}
-                    style={{
-                      backgroundColor: 'white',
-                      color: '#6b7280',
-                      padding: '15px 30px',
-                      border: '2px solid #d1d5db',
-                      borderRadius: '6px',
-                      fontSize: '18px',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    Sign Out
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Survey Interface */}
-          {authMode === 'survey' && surveyActive && currentQuestion && (
-            <div style={{ maxWidth: '700px', margin: '0 auto', padding: '20px' }}>
-              {/* Progress Bar */}
-              <div style={{ marginBottom: '30px' }}>
-                <div style={{
-                  backgroundColor: '#f3f4f6',
-                  height: '8px',
-                  borderRadius: '4px',
-                  overflow: 'hidden'
-                }}>
-                  <div style={{
-                    backgroundColor: '#166534',
-                    height: '100%',
-                    width: `${progress}%`,
-                    transition: 'width 0.3s ease'
-                  }} />
-                </div>
-                <p style={{ textAlign: 'center', marginTop: '10px', color: '#6b7280', fontSize: '14px' }}>
-                  Question {currentQuestionIndex + 1} of {surveyQuestions.length} ({progress}% complete)
-                </p>
-              </div>
-
-              {/* Question */}
-              <div style={{
-                backgroundColor: 'white',
-                padding: '30px',
-                borderRadius: '8px',
-                boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-                marginBottom: '30px'
-              }}>
-                <h3 style={{ color: '#166534', marginBottom: '20px', fontSize: '20px' }}>
-                  {currentQuestion.question}
-                  {currentQuestion.required && <span style={{ color: '#dc2626' }}> *</span>}
-                </h3>
-
-                {/* Radio buttons */}
-                {currentQuestion.type === 'radio' && (
-                  <div>
-                    {currentQuestion.options.map((option, index) => (
-                      <label key={index} style={{ 
-                        display: 'block', 
-                        marginBottom: '12px', 
-                        cursor: 'pointer',
-                        padding: '10px',
-                        border: '1px solid #e5e7eb',
-                        borderRadius: '4px',
-                        backgroundColor: surveyResponses[currentQuestion.id] === option ? '#f0fdf4' : 'white'
-                      }}>
-                        <input
-                          type="radio"
-                          name={currentQuestion.id}
-                          value={option}
-                          checked={surveyResponses[currentQuestion.id] === option}
-                          onChange={(e) => handleSurveyResponse(currentQuestion.id, e.target.value)}
-                          style={{ marginRight: '10px' }}
-                        />
-                        {option}
-                      </label>
-                    ))}
-                  </div>
-                )}
-
-                {/* Checkboxes */}
-                {currentQuestion.type === 'checkbox' && (
-                  <div>
-                    {currentQuestion.options.map((option, index) => {
-                      const currentResponses = surveyResponses[currentQuestion.id] || []
-                      return (
-                        <label key={index} style={{ 
-                          display: 'block', 
-                          marginBottom: '12px', 
-                          cursor: 'pointer',
-                          padding: '10px',
-                          border: '1px solid #e5e7eb',
-                          borderRadius: '4px',
-                          backgroundColor: currentResponses.includes(option) ? '#f0fdf4' : 'white'
-                        }}>
-                          <input
-                            type="checkbox"
-                            value={option}
-                            checked={currentResponses.includes(option)}
-                            onChange={(e) => {
-                              if (e.target.checked) {
-                                handleSurveyResponse(currentQuestion.id, [...currentResponses, option])
-                              } else {
-                                handleSurveyResponse(currentQuestion.id, currentResponses.filter(r => r !== option))
-                              }
-                            }}
-                            style={{ marginRight: '10px' }}
-                          />
-                          {option}
-                        </label>
-                      )
-                    })}
-                  </div>
-                )}
-
-                {/* Textarea */}
-                {currentQuestion.type === 'textarea' && (
-                  <textarea
-                    value={surveyResponses[currentQuestion.id] || ''}
-                    onChange={(e) => handleSurveyResponse(currentQuestion.id, e.target.value)}
-                    placeholder={currentQuestion.placeholder}
-                    style={{
-                      width: '100%',
-                      minHeight: '120px',
-                      padding: '15px',
-                      border: '1px solid #d1d5db',
-                      borderRadius: '6px',
-                      fontSize: '16px',
-                      resize: 'vertical',
-                      boxSizing: 'border-box'
-                    }}
-                  />
-                )}
-
-                {!currentQuestion.required && (
-                  <p style={{ fontSize: '14px', color: '#6b7280', marginTop: '15px', fontStyle: 'italic' }}>
-                    This question is optional - you can skip if you prefer not to answer.
-                  </p>
-                )}
-              </div>
-
-              {/* Navigation */}
-              <div style={{ 
-                display: 'flex', 
-                justifyContent: 'space-between', 
-                alignItems: 'center',
-                gap: '20px'
-              }}>
-                <button
-                  onClick={prevQuestion}
-                  disabled={currentQuestionIndex === 0}
-                  style={{
-                    backgroundColor: currentQuestionIndex === 0 ? '#f3f4f6' : 'white',
-                    color: currentQuestionIndex === 0 ? '#9ca3af' : '#374151',
-                    padding: '12px 24px',
-                    border: '2px solid #d1d5db',
-                    borderRadius: '6px',
-                    cursor: currentQuestionIndex === 0 ? 'not-allowed' : 'pointer',
-                    fontSize: '16px'
-                  }}
-                >
-                  ← Previous
-                </button>
-
-                <div style={{ display: 'flex', gap: '15px' }}>
-                  <button
-                    onClick={() => setAuthMode('dashboard')}
-                    style={{
-                      backgroundColor: 'white',
-                      color: '#6b7280',
-                      padding: '12px 24px',
-                      border: '2px solid #d1d5db',
-                      borderRadius: '6px',
-                      cursor: 'pointer',
-                      fontSize: '16px'
-                    }}
-                  >
-                    Save & Exit
-                  </button>
-                  
-                  <button
-                    onClick={nextQuestion}
-                    style={{
-                      backgroundColor: '#166534',
-                      color: 'white',
-                      padding: '12px 24px',
-                      border: 'none',
-                      borderRadius: '6px',
-                      cursor: 'pointer',
-                      fontSize: '16px',
-                      fontWeight: 'bold'
-                    }}
-                  >
-                    {currentQuestionIndex === surveyQuestions.length - 1 ? 'Complete Survey' : 'Next →'}
-                  </button>
-                </div>
-              </div>
-
-              {/* Auto-save indicator */}
-              <div style={{ 
-                textAlign: 'center', 
-                marginTop: '20px',
-                fontSize: '14px',
-                color: '#6b7280',
-                fontStyle: 'italic'
-              }}>
-                ✓ Your progress is automatically saved
-              </div>
-
-              {/* Crisis resources footer */}
-              <div style={{
-                backgroundColor: '#fef3c7',
-                border: '1px solid #fbbf24',
-                padding: '15px',
-                borderRadius: '6px',
-                marginTop: '30px',
-                textAlign: 'center'
-              }}>
-                <p style={{ margin: '0', color: '#92400e', fontSize: '14px' }}>
-                  <strong>Need support?</strong> National Sexual Assault Hotline: 1-800-656-4673 (24/7) | 
-                  Crisis Text Line: Text HOME to 741741
-                </p>
-              </div>
-            </div>
-          )}
-
-          {/* Back to Landing */}
-          {['register', 'login'].includes(authMode) && (
-            <div style={{ textAlign: 'center', marginTop: '20px' }}>
-              <button
-                onClick={() => setAuthMode('landing')}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  color: '#6b7280',
-                  cursor: 'pointer',
-                  textDecoration: 'underline',
-                  fontSize: '14px'
-                }}
-              >
-                ← Back to Home
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
-    </>
-  )
-}
+                        <li>Enhanced informed consent with trauma-informed language</li>
+                        <li>Inclusive gender identity and sexual orientation options</li>
+                        <li>Disability status and accessibility considerations</li>
+                        <li>Comprehensive socioeconomic an
