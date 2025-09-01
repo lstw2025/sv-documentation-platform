@@ -96,6 +96,42 @@ const surveyQuestions = [
     question: 'What best describes your current employment situation?',
     options: ['Employed full-time', 'Employed part-time', 'Self-employed/freelance', 'Student', 'Unemployed, looking for work', 'Unemployed, not looking for work', 'Retired', 'Unable to work due to disability/illness', 'Homemaker/caregiver', 'Other', 'Prefer not to answer'],
     required: false
+  },
+  // NEW: Incident Overview Section
+  {
+    id: 'incident_frequency',
+    type: 'radio',
+    question: 'How many times have you been involved in a sexual act or situation you did not want to be involved in?',
+    options: ['0 (none)', '1 time', '2-3 times', '4-5 times', '6-10 times', 'More than 10 times', 'Prefer not to answer'],
+    required: false
+  },
+  {
+    id: 'people_present',
+    type: 'radio',
+    question: 'Thinking of one example, how many people were there?',
+    options: ['1 person', '2-3 people', '4-5 people', '6 or more people', 'Don\'t remember', 'Prefer not to answer'],
+    required: false
+  },
+  {
+    id: 'perpetrator_count',
+    type: 'radio',
+    question: 'How many different people were responsible?',
+    options: ['1 person', '2 people', '3-4 people', '5 or more people', 'Don\'t know', 'Prefer not to answer'],
+    required: false
+  },
+  {
+    id: 'incident_timeframe',
+    type: 'radio',
+    question: 'When did this happen?',
+    options: ['Within the past month', 'Within the past 6 months', 'Within the past year', 'Within the past 2 years', 'Within the past 5 years', 'More than 5 years ago', 'Prefer not to answer'],
+    required: false
+  },
+  {
+    id: 'incident_location',
+    type: 'radio',
+    question: 'Thinking of one example, where were you when it happened?',
+    options: ['At work', 'At school, university or training', 'In my home', 'At someone else\'s home', 'At a hotel or accommodation', 'On public transport', 'At a medical facility', 'At a private event', 'At a public event or venue', 'In a public space', 'At a religious or cultural event', 'Online/virtual space', 'Other', 'Prefer not to answer'],
+    required: false
   }
 ]
 
