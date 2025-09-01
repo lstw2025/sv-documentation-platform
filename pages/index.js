@@ -790,4 +790,145 @@ export default function SexualViolenceDocumentationPlatform() {
                   <div style={{
                     backgroundColor: '#166534',
                     height: '100%',
-                    width: `${progress
+                    width: `${progress}%`,
+                    transition: 'width 0.3s ease'
+                  }} />
+                </div>
+                <p style={{ textAlign: 'center', marginTop: '10px', color: '#6b7280', fontSize: '14px' }}>
+                  Question {currentQuestionIndex + 1} of {surveyQuestions.length} ({progress}% complete)
+                </p>
+              </div>
+
+              <div style={{
+                backgroundColor: 'white',
+                padding: '30px',
+                borderRadius: '8px',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+                marginBottom: '30px'
+              }}>
+                <h3 style={{ color: '#166534', marginBottom: '20px', fontSize: '20px' }}>
+                  {currentQuestion.question}
+                  {currentQuestion.required && <span style={{ color: '#dc2626' }}> *</span>}
+                </h3>
+
+                <div>
+                  {currentQuestion.options.map((option, index) => (
+                    <label key={index} style={{ 
+                      display: 'block', 
+                      marginBottom: '12px', 
+                      cursor: 'pointer',
+                      padding: '10px',
+                      border: '1px solid #e5e7eb',
+                      borderRadius: '4px',
+                      backgroundColor: surveyResponses[currentQuestion.id] === option ? '#f0fdf4' : 'white'
+                    }}>
+                      <input
+                        type="radio"
+                        name={currentQuestion.id}
+                        value={option}
+                        checked={surveyResponses[currentQuestion.id] === option}
+                        onChange={(e) => handleSurveyResponse(currentQuestion.id, e.target.value)}
+                        style={{ marginRight: '10px' }}
+                      />
+                      {option}
+                    </label>
+                  ))}
+                </div>
+
+                {!currentQuestion.required && (
+                  <p style={{ fontSize: '14px', color: '#6b7280', marginTop: '15px', fontStyle: 'italic' }}>
+                    This question is optional - you can skip if you prefer not to answer.
+                  </p>
+                )}
+              </div>
+
+              <div style={{ 
+                display: 'flex', 
+                justifyContent: 'space-between', 
+                alignItems: 'center',
+                gap: '20px'
+              }}>
+                <button
+                  onClick={prevQuestion}
+                  disabled={currentQuestionIndex === 0}
+                  style={{
+                    backgroundColor: currentQuestionIndex === 0 ? '#f3f4f6' : 'white',
+                    color: currentQuestionIndex === 0 ? '#9ca3af' : '#374151',
+                    padding: '12px 24px',
+                    border: '2px solid #d1d5db',
+                    borderRadius: '6px',
+                    cursor: currentQuestionIndex === 0 ? 'not-allowed' : 'pointer',
+                    fontSize: '16px'
+                  }}
+                >
+                  ← Previous
+                </button>
+
+                <div style={{ display: 'flex', gap: '15px' }}>
+                  <button
+                    onClick={() => setAuthMode('dashboard')}
+                    style={{
+                      backgroundColor: 'white',
+                      color: '#6b7280',
+                      padding: '12px 24px',
+                      border: '2px solid #d1d5db',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      fontSize: '16px'
+                    }}
+                  >
+                    Save & Exit
+                  </button>
+                  
+                  <button
+                    onClick={nextQuestion}
+                    style={{
+                      backgroundColor: '#166534',
+                      color: 'white',
+                      padding: '12px 24px',
+                      border: 'none',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      fontSize: '16px',
+                      fontWeight: 'bold'
+                    }}
+                  >
+                    {currentQuestionIndex === surveyQuestions.length - 1 ? 'Complete Demographics' : 'Next →'}
+                  </button>
+                </div>
+              </div>
+
+              <div style={{ 
+                textAlign: 'center', 
+                marginTop: '20px',
+                fontSize: '14px',
+                color: '#6b7280',
+                fontStyle: 'italic'
+              }}>
+                ✓ Your progress is automatically saved
+              </div>
+            </div>
+          )}
+
+          {['register', 'login'].includes(authMode) && (
+            <div style={{ textAlign: 'center', marginTop: '20px' }}>
+              <button
+                onClick={() => setAuthMode('landing')}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: '#6b7280',
+                  cursor: 'pointer',
+                  textDecoration: 'underline',
+                  fontSize: '14px'
+                }}
+              >
+                ← Back to Home
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    </>
+  )
+}
